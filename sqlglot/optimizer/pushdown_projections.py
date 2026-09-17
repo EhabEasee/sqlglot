@@ -291,12 +291,15 @@ def _remove_unused_selections(scope, parent_selections, schema, alias_count, jou
     selections = expression.selects
     inlined_window_selections = selections
     if windows := expression.args.get("windows"):
-        window_resolution_select = exp.Select(
+        # Named windows can affect cardinality, but are stored separately from select-list
+        # expressions. We inline them on a temporary Select to examine their contents
+        # without mutating the original expression.
+        window_select = exp.Select(
             expressions=[selection.copy() for selection in selections],
             windows=[window.copy() for window in windows],
         )
-        eliminate_window_clause(window_resolution_select)
-        inlined_window_selections = window_resolution_select.selects
+        eliminate_window_clause(window_select)
+        inlined_window_selections = window_select.selects
 
     for selection, inlined_window_selection in zip(selections, inlined_window_selections):
         name = selection.alias_or_name

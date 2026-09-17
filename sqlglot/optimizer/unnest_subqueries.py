@@ -1,12 +1,7 @@
 from __future__ import annotations
 from sqlglot import exp
 from sqlglot.helper import name_sequence
-from sqlglot.optimizer.scope import (
-    ScopeType,
-    find_all_in_scope,
-    find_in_scope,
-    traverse_scope,
-)
+from sqlglot.optimizer.scope import ScopeType, find_all_in_scope, find_in_scope, traverse_scope
 from sqlglot._typing import E
 
 
