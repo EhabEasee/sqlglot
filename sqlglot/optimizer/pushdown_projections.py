@@ -10,12 +10,12 @@ from sqlglot.optimizer.scope import (
     Scope,
     find_all_in_scope,
     find_in_scope,
-    is_windowed_aggregate,
     traverse_scope,
 )
 from sqlglot.schema import ensure_schema
 from sqlglot.errors import OptimizeError
 from sqlglot.helper import seq_get
+from sqlglot.transforms import eliminate_window_clause
 
 if t.TYPE_CHECKING:
     from sqlglot._typing import E
@@ -288,12 +288,22 @@ def _remove_unused_selections(scope, parent_selections, schema, alias_count, jou
     star = False
     is_agg = False
 
-    for selection in expression.selects:
+    selections = expression.selects
+    inlined_window_selections = selections
+    if windows := expression.args.get("windows"):
+        window_resolution_select = exp.Select(
+            expressions=[selection.copy() for selection in selections],
+            windows=[window.copy() for window in windows],
+        )
+        eliminate_window_clause(window_resolution_select)
+        inlined_window_selections = window_resolution_select.selects
+
+    for selection, inlined_window_selection in zip(selections, inlined_window_selections):
         name = selection.alias_or_name
         referenced = name in parent_selections
         is_agg_selection = (implicit_group_by_all or not is_agg) and any(
-            not is_windowed_aggregate(aggregate)
-            for aggregate in find_all_in_scope(selection, exp.AggFunc)
+            not aggregate.is_windowed
+            for aggregate in find_all_in_scope(inlined_window_selection, exp.AggFunc)
         )
 
         if (

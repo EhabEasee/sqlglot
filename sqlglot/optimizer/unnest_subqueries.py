@@ -5,7 +5,6 @@ from sqlglot.optimizer.scope import (
     ScopeType,
     find_all_in_scope,
     find_in_scope,
-    is_windowed_aggregate,
     traverse_scope,
 )
 from sqlglot._typing import E
@@ -420,7 +419,7 @@ def _is_plain_group(group: exp.Group) -> bool:
 
 def _has_aggregate_projection(select: exp.Select) -> bool:
     return any(
-        not is_windowed_aggregate(agg)
+        not agg.is_windowed
         for projection in select.selects
         for agg in find_all_in_scope(projection, exp.AggFunc)
     )
